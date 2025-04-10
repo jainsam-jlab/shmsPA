@@ -25,14 +25,15 @@ PAPrimaryGeneratorAction::PAPrimaryGeneratorAction()
   
   auto particleTable = G4ParticleTable::GetParticleTable();
   fProton = particleTable->FindParticle("proton");
+  //start with proton
+  auto mass = fProton->GetPDGMass();
+  G4double Ekin = sqrt(fMomentum*fMomentum + mass*mass) - mass;
   
   //gun particle and position: does not need to change
   fParticleGun->SetParticlePosition(G4ThreeVector(0.,0.,ztar*m));
   fParticleGun->SetParticleDefinition(fProton);
-  //Momentum to KE:
-  G4double Ekin = sqrt(fMomentum/GeV*fMomentum/GeV + 0.938*0.938);
-  fParticleGun->SetParticleEnergy(Ekin*GeV);
   fParticleGun->SetParticleMomentumDirection(G4ThreeVector(0,0,1));
+  fParticleGun->SetParticleEnergy(Ekin);
   
   // define commands for this class
   DefineCommands();
@@ -59,45 +60,33 @@ PAPrimaryGeneratorAction::~PAPrimaryGeneratorAction()
 
 void PAPrimaryGeneratorAction::GeneratePrimaries(G4Event* event)
 {
-  	auto mass = fProton->GetPDGMass();
+  	auto mass = fParticleGun->GetParticleDefinition()->GetPDGMass();
 	//get information 
 	if (!fUseGenerated){
-		//simple, consistent with /gun/ commands
-		//auto pp = fMomentum;
-  		/**
-		auto ekin = std::sqrt(pp*pp+mass*mass)-mass;
-		auto Xvec = G4ThreeVector(0,0,ztar*m); //default z position
-  		
-		fParticleGun->SetParticleEnergy(ekin);
-		fParticleGun->SetParticlePosition(Xvec);
-  		fParticleGun->SetParticleMomentumDirection(
-                  G4ThreeVector(0,0,1));
-  		**/ 
-
-		//just leave the default stuff
+		//leave default, consistent with /gun/ commands
   		fParticleGun->GeneratePrimaryVertex(event);
 	} else {
 		//and generate all the events read in from the file
 		G4double P0 = fMomentum; //read central momentum
 		G4double Pmom = P0*(1.0+delta[nev]/100.);
-		G4double energy = sqrt(Pmom*Pmom + mass*mass)-mass; //kinetic
 		//calculate gun position, momentum
-		//are xfp, yfp in cm or mm?
 		G4double posX = xfp[nev]/100. + xpfp[nev]*ztar; //x at ztar
 		G4double posY = yfp[nev]/100. +ypfp[nev]*ztar; //y at ztar
 		G4double momX = xpfp[nev]; //dx/dz
 		G4double momY = ypfp[nev]; //dy/dz
 		G4double momZ = 1; //dz/dz
+		G4double Ekin = sqrt(Pmom*Pmom + mass*mass)-mass;
 		auto Pvec = G4ThreeVector(momX, momY, momZ);
 		auto Xvec = G4ThreeVector(posX*m,posY*m,ztar*m); //default z position
 		//assign these quantities to the event
-		fParticleGun->SetParticleEnergy(energy);
 		fParticleGun->SetParticleMomentumDirection(Pvec);
+		fParticleGun->SetParticleEnergy(Ekin);
 		fParticleGun->SetParticlePosition(Xvec);
 
 		fParticleGun->GeneratePrimaryVertex(event);
 	   //output progress statement
 	   if ((nev+1)%1000==0)G4cout<<"Processed "<<nev+1<<" events"<<G4endl;
+	   //if using the entire file (>163333 events)
 	   if (nev == NEVENTS-1) {
 		   G4cout<< "End of generated events"<<G4endl;
 		   return;
@@ -146,10 +135,10 @@ void PAPrimaryGeneratorAction::DefineCommands()
 void PAPrimaryGeneratorAction::ReadGeneratedEvents(){
   
   //loosely based off Bill's code
-  //read genkinfile.txt, which has structure delta, xfp, yfp, xpfp, ypfp
+  //read genkinfile.txt, which has structure xfp, yfp, xpfp, ypfp, delta
   std::string line;
   std::ifstream fin( fInputFileName , std::ios::in );
-  if( !fin.is_open() ) { G4cerr << "Can't open file genkinfile.txt" << G4endl; exit(1);}
+  if( !fin.is_open() ) { G4cerr << "Can't open file" << G4endl; exit(1);}
 
 
   //create variables to hold data
