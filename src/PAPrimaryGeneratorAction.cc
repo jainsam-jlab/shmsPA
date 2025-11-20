@@ -63,7 +63,7 @@ void PAPrimaryGeneratorAction::GeneratePrimaries(G4Event* event)
   	auto mass = fParticleGun->GetParticleDefinition()->GetPDGMass();
 	//get information 
 	if (!fUseGenerated){
-		//leave default, consistent with /gun/ commands
+		//simple, consistent with /gun/ commands
   		fParticleGun->GeneratePrimaryVertex(event);
 	} else {
 		//and generate all the events read in from the file
@@ -112,9 +112,6 @@ void PAPrimaryGeneratorAction::DefineCommands()
   momentumCmd.SetParameterName("p", true);
   momentumCmd.SetRange("p>=0.");                                
   momentumCmd.SetDefaultValue("1.");
-  // ok
-  //momentumCmd.SetParameterName("p", true);
-  //momentumCmd.SetRange("p>=0.");     
 
   //choose to use generated events or not
   auto& genCmd = fMessenger->DeclareProperty("useGenerated",fUseGenerated);
@@ -122,6 +119,7 @@ void PAPrimaryGeneratorAction::DefineCommands()
   genCmd.SetParameterName("bool", true);
   genCmd.SetDefaultValue("false");
 
+  //what file to read generated events from
   auto& fileCmd = fMessenger->DeclareProperty("setInFile",fInputFileName);
   fileCmd.SetGuidance("Set file name for input kinematics");
   fileCmd.SetParameterName("string",true);
