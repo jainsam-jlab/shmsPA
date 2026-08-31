@@ -1,12 +1,8 @@
 #include <TFile.h>
-#include <TTree.h>
-#include <TTreeReader.h>
-#include <TTreeReaderValue.h>
 #include <TStopwatch.h>
-
+#include <TTree.h>
 #include <algorithm>
 #include <cmath>
-#include <fstream>
 #include <iostream>
 #include <string>
 #include <unordered_map>
@@ -14,44 +10,180 @@
 #include <vector>
 
 struct PA {
-  int id{}, agc{}, hgc{}, ngc{}, s2ynpe{}; double s1xe{},s1ye{},s2xe{},s2ye{},s1xt{},s1yt{},s2xt{},s2yt{},cal{};
+  int id{}, agc{}, hgc{}, ngc{}, s2ynpe{};
+  double s1xe{}, s1ye{}, s2xe{}, s2ye{}, s1xt{}, s1yt{}, s2xt{}, s2yt{}, cal{};
 };
 struct Tr {
-  int id{},parent{},pdg{}; std::string creator,startVol,endVol,endProc;
-  double sx{},sy{},sz{},spx{},spy{},spz{},ske{},ex{},ey{},ez{},epx{},epy{},epz{},eke{},len{};
-  bool s1{},hgc{},agc{},s2{},cal{},exit{};
-  double startP()const{return std::sqrt(spx*spx+spy*spy+spz*spz);} double endP()const{return std::sqrt(epx*epx+epy*epy+epz*epz);}
+  int id{}, parent{}, pdg{};
+  std::string creator, endVol, endProc;
+  bool s1{}, hgc{}, agc{}, s2{}, cal{}, exit{};
 };
-enum PID { PION=0, PROTON=1, KAON=2, POSITRON=3, CONTAM=4, TRIGFAIL=5 };
-static const char* pidName(int p){static const char* n[]={"pion","proton","kaon","positron","contamination","trigger-fail"};return n[p];}
-static int trig(const PA&p){return (p.s1xe>.5)+(p.s1ye>.5&&std::abs(p.s1yt-p.s1xt)<20)+(p.s2xe>.5&&std::abs(p.s2xt-p.s1xt)<20)+(p.s2ynpe>100&&std::abs(p.s2yt-p.s1xt)<20);}
-static int pid(const PA&p,double mom){if(trig(p)<3)return TRIGFAIL;if(p.agc<20&&p.hgc<50)return PROTON;if(p.agc>20&&p.hgc<50)return KAON;if(p.agc>20&&p.hgc>50&&p.ngc>5&&p.cal/(mom*1000.)>.7)return POSITRON;if(p.agc>20&&p.hgc>50)return PION;return CONTAM;}
-static int stage(const Tr&t){if(t.exit)return 6;if(t.cal)return 5;if(t.s2)return 4;if(t.agc)return 3;if(t.hgc)return 2;if(t.s1)return 1;return 0;}
-static const char* stageName(int s){static const char*n[]={"BeforeS1","S1","HGC","AGC","S2","Cal","ExitedCal"};return n[s];}
+enum PID { PION, PROTON, KAON, POSITRON, CONTAM, TRIGFAIL };
+static int trig(const PA& p) {
+  return (p.s1xe > .5) + (p.s1ye > .5 && std::abs(p.s1yt-p.s1xt) < 20) +
+         (p.s2xe > .5 && std::abs(p.s2xt-p.s1xt) < 20) +
+         (p.s2ynpe > 100 && std::abs(p.s2yt-p.s1xt) < 20);
+}
+static int pid(const PA& p, double mom) {
+  if (trig(p) < 3) return TRIGFAIL;
+  if (p.agc < 20 && p.hgc < 50) return PROTON;
+  if (p.agc > 20 && p.hgc < 50) return KAON;
+  if (p.agc > 20 && p.hgc > 50 && p.ngc > 5 && p.cal/(mom*1000.) > .7) return POSITRON;
+  if (p.agc > 20 && p.hgc > 50) return PION;
+  return CONTAM;
+}
+static int stage(const Tr& t) {
+  if (t.exit) return 6; if (t.cal) return 5; if (t.s2) return 4;
+  if (t.agc) return 3; if (t.hgc) return 2; if (t.s1) return 1; return 0;
+}
+static const char* stageName(int s) {
+  static const char* n[]={"BeforeS1","S1","HGC","AGC","S2","Cal","ExitedCal"};
+  return n[s];
+}
 
-int main(int argc,char**argv){
- if(argc<4){std::cerr<<"usage: "<<argv[0]<<" INPUT.root OUTPUT.root CENTRAL_MOMENTUM_GEV [MAX_TRACK_ENTRIES]\n";return 2;}
- const std::string in=argv[1],out=argv[2]; const double mom=std::stod(argv[3]); const long long max=(argc>4?std::stoll(argv[4]):-1);
- TStopwatch total,phase; total.Start(); std::unordered_map<int,PA> pas;
- TFile fi(in.c_str(),"READ"); if(fi.IsZombie()){std::cerr<<"Cannot open "<<in<<"\n";return 1;} auto pt=dynamic_cast<TTree*>(fi.Get("PA"));auto tt=dynamic_cast<TTree*>(fi.Get("Tracks"));if(!pt||!tt){std::cerr<<"PA or Tracks missing\n";return 1;}
- PA p; pt->SetBranchAddress("EventID",&p.id);pt->SetBranchAddress("AGCNPE",&p.agc);pt->SetBranchAddress("HGCNPE",&p.hgc);pt->SetBranchAddress("NGCNPE",&p.ngc);pt->SetBranchAddress("S2YNPE",&p.s2ynpe);pt->SetBranchAddress("S1XEnergy",&p.s1xe);pt->SetBranchAddress("S1YEnergy",&p.s1ye);pt->SetBranchAddress("S2XEnergy",&p.s2xe);pt->SetBranchAddress("S2YEnergy",&p.s2ye);pt->SetBranchAddress("S1XTime",&p.s1xt);pt->SetBranchAddress("S1YTime",&p.s1yt);pt->SetBranchAddress("S2XTime",&p.s2xt);pt->SetBranchAddress("S2YTime",&p.s2yt);pt->SetBranchAddress("CalEnergy",&p.cal);
- pas.reserve(pt->GetEntries()*2);for(long long i=0;i<pt->GetEntries();++i){pt->GetEntry(i);pas[p.id]=p;} std::cout<<"TIMING read_PA_s "<<phase.RealTime()<<" events "<<pas.size()<<"\n";phase.Start(true);
- TFile fo(out.c_str(),"RECREATE"); TTree es("EventSummary","One row per event: pion truth correlated with event detector response");TTree dd("DirectDaughterPi","One row per direct daughter pi+");TTree ap("AllPionTracks","One row per PDG=211 track");
- int eid,primaryID,primaryS1,primaryHGC,primaryAGC,primaryS2,primaryCal,primaryExit,nDirect,hasD,dhgc,dagc,ds2,dcal,dexit,bestID,bestStage,nPi,nDesc,anyHGC,anyAGC,anyS2,anyCal,descHGC,descAGC,descS2,descCal,primaryPID,directPID,descPID,anyPID,ts1x,ts1y,ts2x,ts2y,ntr,tpass,oldClass,oldPion;double primaryStartP,primaryEndP,bestStartP,bestEndP;std::string primaryEndVol,primaryEndProc,bestStageName;
-#define BI(n,v) es.Branch(n,&v)
- BI("EventID",eid);BI("PrimaryTrackID",primaryID);BI("PrimaryReachedS1",primaryS1);BI("PrimaryReachedHGC",primaryHGC);BI("PrimaryReachedAGC",primaryAGC);BI("PrimaryReachedS2",primaryS2);BI("PrimaryReachedCal",primaryCal);BI("PrimaryExitedCal",primaryExit);BI("PrimaryStartP",primaryStartP);BI("PrimaryEndP",primaryEndP);BI("PrimaryEndVolume",primaryEndVol);BI("PrimaryEndProcess",primaryEndProc);BI("NDirectDaughterPi",nDirect);BI("HasDirectDaughterPi",hasD);BI("HasDirectDaughterReachedHGC",dhgc);BI("HasDirectDaughterReachedAGC",dagc);BI("HasDirectDaughterReachedS2",ds2);BI("HasDirectDaughterReachedCal",dcal);BI("HasDirectDaughterExitedCal",dexit);BI("BestDirectDaughterTrackID",bestID);BI("BestDirectDaughterStartP",bestStartP);BI("BestDirectDaughterEndP",bestEndP);BI("BestDirectDaughterFurthestStage",bestStage);BI("BestDirectDaughterFurthestStageName",bestStageName);BI("NPiTracks",nPi);BI("NDescendantPi",nDesc);BI("AnyPiReachedHGC",anyHGC);BI("AnyPiReachedAGC",anyAGC);BI("AnyPiReachedS2",anyS2);BI("AnyPiReachedCal",anyCal);BI("AnyDescendantPiReachedHGC",descHGC);BI("AnyDescendantPiReachedAGC",descAGC);BI("AnyDescendantPiReachedS2",descS2);BI("AnyDescendantPiReachedCal",descCal);BI("PrimaryPiInPIDRegion",primaryPID);BI("DirectDaughterPiInPIDRegion",directPID);BI("DescendantPiInPIDRegion",descPID);BI("AnyPiInPIDRegion",anyPID);BI("TriggerS1X",ts1x);BI("TriggerS1Y",ts1y);BI("TriggerS2X",ts2x);BI("TriggerS2Y",ts2y);BI("NTrig",ntr);BI("TriggerPass",tpass);BI("OldPIDClass",oldClass);BI("OldPionPIDPass",oldPion);BI("AGCNPE",p.agc);BI("HGCNPE",p.hgc);BI("NGCNPE",p.ngc);BI("S2YNPE",p.s2ynpe);BI("S1XEnergy",p.s1xe);BI("S1YEnergy",p.s1ye);BI("S2XEnergy",p.s2xe);BI("S2YEnergy",p.s2ye);BI("S1XTime",p.s1xt);BI("S1YTime",p.s1yt);BI("S2XTime",p.s2xt);BI("S2YTime",p.s2yt);BI("CalEnergy",p.cal);
- int deid,dprim,did,dparent,dstage,dS1,dHGC,dAGC,dS2,dCal,dExit,dTrig,dNTrig,dAGCNPE,dHGCNPE,dNGCNPE,dOldPion;double dSx,dSy,dSz,dSpx,dSpy,dSpz,dSP,dSKE,dEx,dEy,dEz,dEpx,dEpy,dEpz,dEP,dEKE,dLen,dDelta;std::string dCreator,dStartVol,dEndVol,dEndProc,dStageName;
-#define BD(n,v) dd.Branch(n,&v)
- BD("EventID",deid);BD("PrimaryTrackID",dprim);BD("DaughterTrackID",did);BD("DaughterParentID",dparent);BD("CreatorProcess",dCreator);BD("StartX",dSx);BD("StartY",dSy);BD("StartZ",dSz);BD("StartPx",dSpx);BD("StartPy",dSpy);BD("StartPz",dSpz);BD("StartP",dSP);BD("StartKE",dSKE);BD("StartVolume",dStartVol);BD("ReachedS1",dS1);BD("ReachedHGC",dHGC);BD("ReachedAGC",dAGC);BD("ReachedS2",dS2);BD("ReachedCal",dCal);BD("ExitedCal",dExit);BD("EndX",dEx);BD("EndY",dEy);BD("EndZ",dEz);BD("EndPx",dEpx);BD("EndPy",dEpy);BD("EndPz",dEpz);BD("EndP",dEP);BD("EndKE",dEKE);BD("EndVolume",dEndVol);BD("EndProcess",dEndProc);BD("TrackLength",dLen);BD("ProductionDeltaR",dDelta);BD("FurthestStage",dstage);BD("FurthestStageName",dStageName);BD("TriggerPass",dTrig);BD("NTrig",dNTrig);BD("AGCNPE",dAGCNPE);BD("HGCNPE",dHGCNPE);BD("NGCNPE",dNGCNPE);BD("OldPionPIDPass",dOldPion);
- int aeid,aid,apar,agen,aPrimary,aDirect,aDesc,aS1,aHGC,aAGC,aS2,aCal,aExit;double aSP,aEP;std::string aCreator,aEndProc;
-#define BA(n,v) ap.Branch(n,&v)
- BA("EventID",aeid);BA("TrackID",aid);BA("ParentID",apar);BA("GenerationDepth",agen);BA("IsPrimary",aPrimary);BA("IsDirectDaughter",aDirect);BA("IsPrimaryDescendant",aDesc);BA("ReachedS1",aS1);BA("ReachedHGC",aHGC);BA("ReachedAGC",aAGC);BA("ReachedS2",aS2);BA("ReachedCal",aCal);BA("ExitedCal",aExit);BA("StartP",aSP);BA("EndP",aEP);BA("CreatorProcess",aCreator);BA("EndProcess",aEndProc);
- int te,tid,tpar,tpdg,rs1,rh,ra,rs2,rc,re;double sx,sy,sz,spx,spy,spz,ske,ex,ey,ez,epx,epy,epz,eke,len;char creator[256]={},sv[256]={},ev[256]={},eproc[256]={};
- tt->SetCacheSize(32LL*1024*1024);tt->SetBranchStatus("*",1);tt->SetBranchAddress("EventID",&te);tt->SetBranchAddress("TrackID",&tid);tt->SetBranchAddress("ParentID",&tpar);tt->SetBranchAddress("PDG",&tpdg);tt->SetBranchAddress("CreatorProcess",creator);tt->SetBranchAddress("StartX",&sx);tt->SetBranchAddress("StartY",&sy);tt->SetBranchAddress("StartZ",&sz);tt->SetBranchAddress("StartPx",&spx);tt->SetBranchAddress("StartPy",&spy);tt->SetBranchAddress("StartPz",&spz);tt->SetBranchAddress("StartKE",&ske);tt->SetBranchAddress("StartVolume",sv);tt->SetBranchAddress("EndX",&ex);tt->SetBranchAddress("EndY",&ey);tt->SetBranchAddress("EndZ",&ez);tt->SetBranchAddress("EndPx",&epx);tt->SetBranchAddress("EndPy",&epy);tt->SetBranchAddress("EndPz",&epz);tt->SetBranchAddress("EndKE",&eke);tt->SetBranchAddress("EndVolume",ev);tt->SetBranchAddress("EndProcess",eproc);tt->SetBranchAddress("TrackLength",&len);tt->SetBranchAddress("ReachedS1",&rs1);tt->SetBranchAddress("ReachedHGC",&rh);tt->SetBranchAddress("ReachedAGC",&ra);tt->SetBranchAddress("ReachedS2",&rs2);tt->SetBranchAddress("ReachedCal",&rc);tt->SetBranchAddress("ExitedCal",&re);
- long long malformed0=0,multiPrimary=0,duplicates=0,events=0;std::vector<Tr> tracks;int current=-1;std::unordered_set<int> seen;
- auto process=[&](){if(tracks.empty())return;eid=current;auto pi=pas.find(eid);if(pi==pas.end()){++malformed0;return;}p=pi->second;std::unordered_map<int,size_t> byid;byid.reserve(tracks.size()*2);for(size_t i=0;i<tracks.size();++i)if(!byid.emplace(tracks[i].id,i).second)++duplicates;std::vector<size_t> prim;for(size_t i=0;i<tracks.size();++i)if(tracks[i].parent==0&&tracks[i].pdg==211)prim.push_back(i);if(prim.size()!=1){++multiPrimary;return;}const Tr&pr=tracks[prim[0]];primaryID=pr.id;primaryS1=pr.s1;primaryHGC=pr.hgc;primaryAGC=pr.agc;primaryS2=pr.s2;primaryCal=pr.cal;primaryExit=pr.exit;primaryStartP=pr.startP();primaryEndP=pr.endP();primaryEndVol=pr.endVol;primaryEndProc=pr.endProc;nDirect=dhgc=dagc=ds2=dcal=dexit=0;bestID=-1;bestStage=-1;bestStartP=bestEndP=-1;nPi=nDesc=anyHGC=anyAGC=anyS2=anyCal=descHGC=descAGC=descS2=descCal=0;
-  auto ancestry=[&](const Tr&t,int&depth){depth=0;int par=t.parent;std::unordered_set<int> guard;while(par!=0&&guard.insert(par).second){++depth;if(par==primaryID)return true;auto q=byid.find(par);if(q==byid.end())return false;par=tracks[q->second].parent;}return false;};
-  for(const Tr&t:tracks)if(t.pdg==211){++nPi;int depth=0;bool isprim=t.parent==0&&t.id==primaryID,direct=t.parent==primaryID,desc=direct||ancestry(t,depth);if(desc&&!isprim)++nDesc;anyHGC|=t.hgc;anyAGC|=t.agc;anyS2|=t.s2;anyCal|=t.cal;if(desc&&!isprim){descHGC|=t.hgc;descAGC|=t.agc;descS2|=t.s2;descCal|=t.cal;}aeid=eid;aid=t.id;apar=t.parent;agen=isprim?0:depth;aPrimary=isprim;aDirect=direct;aDesc=desc&&!isprim;aS1=t.s1;aHGC=t.hgc;aAGC=t.agc;aS2=t.s2;aCal=t.cal;aExit=t.exit;aSP=t.startP();aEP=t.endP();aCreator=t.creator;aEndProc=t.endProc;ap.Fill();if(direct){++nDirect;dhgc|=t.hgc;dagc|=t.agc;ds2|=t.s2;dcal|=t.cal;dexit|=t.exit;int st=stage(t);if(st>bestStage){bestStage=st;bestID=t.id;bestStartP=t.startP();bestEndP=t.endP();}deid=eid;dprim=primaryID;did=t.id;dparent=t.parent;dCreator=t.creator;dSx=t.sx;dSy=t.sy;dSz=t.sz;dSpx=t.spx;dSpy=t.spy;dSpz=t.spz;dSP=t.startP();dSKE=t.ske;dStartVol=t.startVol;dS1=t.s1;dHGC=t.hgc;dAGC=t.agc;dS2=t.s2;dCal=t.cal;dExit=t.exit;dEx=t.ex;dEy=t.ey;dEz=t.ez;dEpx=t.epx;dEpy=t.epy;dEpz=t.epz;dEP=t.endP();dEKE=t.eke;dEndVol=t.endVol;dEndProc=t.endProc;dLen=t.len;dDelta=std::sqrt((t.sx-pr.ex)*(t.sx-pr.ex)+(t.sy-pr.ey)*(t.sy-pr.ey)+(t.sz-pr.ez)*(t.sz-pr.ez));dstage=st;dStageName=stageName(st);dTrig=trig(p)>=3;dNTrig=trig(p);dAGCNPE=p.agc;dHGCNPE=p.hgc;dNGCNPE=p.ngc;dOldPion=pid(p,mom)==PION;dd.Fill();}}hasD=nDirect>0;directPID=dhgc||dagc;descPID=descHGC||descAGC;anyPID=anyHGC||anyAGC;primaryPID=primaryHGC||primaryAGC;bestStageName=bestStage>=0?stageName(bestStage):"None";ts1x=p.s1xe>.5;ts1y=p.s1ye>.5&&std::abs(p.s1yt-p.s1xt)<20;ts2x=p.s2xe>.5&&std::abs(p.s2xt-p.s1xt)<20;ts2y=p.s2ynpe>100&&std::abs(p.s2yt-p.s1xt)<20;ntr=ts1x+ts1y+ts2x+ts2y;tpass=ntr>=3;oldClass=pid(p,mom);oldPion=oldClass==PION;es.Fill();++events;};
- const long long entries=max>=0?std::min<long long>(max,tt->GetEntries()):tt->GetEntries();for(long long i=0;i<entries;++i){tt->GetEntry(i);if(current!=-1&&te!=current){process();tracks.clear();seen.clear();}current=te;Tr t;t.id=tid;t.parent=tpar;t.pdg=tpdg;t.creator=creator;t.startVol=sv;t.endVol=ev;t.endProc=eproc;t.sx=sx;t.sy=sy;t.sz=sz;t.spx=spx;t.spy=spy;t.spz=spz;t.ske=ske;t.ex=ex;t.ey=ey;t.ez=ez;t.epx=epx;t.epy=epy;t.epz=epz;t.eke=eke;t.len=len;t.s1=rs1;t.hgc=rh;t.agc=ra;t.s2=rs2;t.cal=rc;t.exit=re;tracks.push_back(std::move(t));if(i&&i%50000000==0)std::cout<<"PROGRESS tracks "<<i<<" / "<<entries<<" events "<<events<<"\n";}process();std::cout<<"TIMING read_tracks_classify_s "<<phase.RealTime()<<" tracks "<<entries<<" events "<<events<<"\n";phase.Start(true);
- fo.cd();es.Write();dd.Write();ap.Write();TTree meta("Metadata","study metadata");std::string input=in,pidDef="ReachedHGC OR ReachedAGC",warning="AGCNPE/HGCNPE are event-level; truth-pion presence is correlation, not NPE attribution";long long trackEntries=entries;meta.Branch("InputFile",&input);meta.Branch("PIDRegionDefinition",&pidDef);meta.Branch("NPEInterpretation",&warning);meta.Branch("TrackEntriesRead",&trackEntries);meta.Branch("MalformedPrimaryEvents",&multiPrimary);meta.Branch("DuplicateEventTrackIDs",&duplicates);meta.Fill();meta.Write();fo.Close();std::cout<<"TIMING write_ROOT_s "<<phase.RealTime()<<"\nTOTAL_s "<<total.RealTime()<<"\nOUTPUT "<<out<<"\n";return (multiPrimary||duplicates)?3:0;
+int main(int argc, char** argv) {
+  if (argc < 5) {
+    std::cerr << "usage: " << argv[0]
+              << " INPUT.root OUTPUT.root CENTRAL_MOMENTUM_GEV TARGET_PDG [MAX_TRACK_ENTRIES]\n";
+    return 2;
+  }
+  const std::string in=argv[1], out=argv[2];
+  const double mom=std::stod(argv[3]);
+  int targetPDG=std::stoi(argv[4]);
+  const long long max=argc>5 ? std::stoll(argv[5]) : -1;
+  TStopwatch total, phase; total.Start(); phase.Start();
+
+  TFile fi(in.c_str(),"READ");
+  auto* pt=dynamic_cast<TTree*>(fi.Get("PA"));
+  auto* tt=dynamic_cast<TTree*>(fi.Get("Tracks"));
+  if (fi.IsZombie() || !pt || !tt) { std::cerr<<"Cannot open PA and Tracks in "<<in<<"\n"; return 1; }
+
+  PA p;
+#define PAB(n,v) pt->SetBranchAddress(n,&v)
+  PAB("EventID",p.id); PAB("AGCNPE",p.agc); PAB("HGCNPE",p.hgc); PAB("NGCNPE",p.ngc);
+  PAB("S2YNPE",p.s2ynpe); PAB("S1XEnergy",p.s1xe); PAB("S1YEnergy",p.s1ye);
+  PAB("S2XEnergy",p.s2xe); PAB("S2YEnergy",p.s2ye); PAB("S1XTime",p.s1xt);
+  PAB("S1YTime",p.s1yt); PAB("S2XTime",p.s2xt); PAB("S2YTime",p.s2yt);
+  PAB("CalEnergy",p.cal);
+  std::unordered_map<int,PA> pas; pas.reserve(pt->GetEntries()*2);
+  for(long long i=0;i<pt->GetEntries();++i){pt->GetEntry(i);pas[p.id]=p;}
+  std::cout<<"TIMING read_PA_s "<<phase.RealTime()<<" events "<<pas.size()<<"\n"; phase.Start(true);
+
+  TFile fo(out.c_str(),"RECREATE");
+  TTree es("EventSummary","Selected-particle truth correlated with event detector response");
+  TTree dd("DirectDaughters","Direct daughters with the selected PDG");
+  TTree at("TargetTracks","Tracks with the selected PDG");
+
+  int eid,primaryID,pS1,pHGC,pAGC,pS2,pCal,pExit,nDirect,hasDirect,dHGC,dAGC,dS2,dCal,dExit;
+  int bestID,bestStage,nTarget,nDesc,anyHGC,anyAGC,anyS2,anyCal,descHGC,descAGC,descS2,descCal;
+  int primaryPID,directPID,descPID,anyPID,ts1x,ts1y,ts2x,ts2y,ntr,tpass,oldClass,oldPion;
+  std::string pEndVol,pEndProc,bestStageName;
+#define EB(n,v) es.Branch(n,&v)
+  EB("EventID",eid); EB("TargetPDG",targetPDG); EB("PrimaryTrackID",primaryID);
+  EB("PrimaryReachedS1",pS1); EB("PrimaryReachedHGC",pHGC); EB("PrimaryReachedAGC",pAGC);
+  EB("PrimaryReachedS2",pS2); EB("PrimaryReachedCal",pCal); EB("PrimaryExitedCal",pExit);
+  EB("PrimaryEndVolume",pEndVol); EB("PrimaryEndProcess",pEndProc);
+  EB("NDirectDaughters",nDirect); EB("HasDirectDaughter",hasDirect);
+  EB("DirectDaughterReachedHGC",dHGC); EB("DirectDaughterReachedAGC",dAGC);
+  EB("DirectDaughterReachedS2",dS2); EB("DirectDaughterReachedCal",dCal);
+  EB("DirectDaughterExitedCal",dExit); EB("BestDirectDaughterTrackID",bestID);
+  EB("BestDirectDaughterFurthestStage",bestStage); EB("BestDirectDaughterFurthestStageName",bestStageName);
+  EB("NTargetTracks",nTarget); EB("NDescendantTracks",nDesc);
+  EB("AnyTargetReachedHGC",anyHGC); EB("AnyTargetReachedAGC",anyAGC);
+  EB("AnyTargetReachedS2",anyS2); EB("AnyTargetReachedCal",anyCal);
+  EB("AnyDescendantReachedHGC",descHGC); EB("AnyDescendantReachedAGC",descAGC);
+  EB("AnyDescendantReachedS2",descS2); EB("AnyDescendantReachedCal",descCal);
+  EB("PrimaryInPIDRegion",primaryPID); EB("DirectDaughterInPIDRegion",directPID);
+  EB("DescendantInPIDRegion",descPID); EB("AnyTargetInPIDRegion",anyPID);
+  EB("TriggerS1X",ts1x); EB("TriggerS1Y",ts1y); EB("TriggerS2X",ts2x); EB("TriggerS2Y",ts2y);
+  EB("NTrig",ntr); EB("TriggerPass",tpass); EB("OldPIDClass",oldClass); EB("OldPionPIDPass",oldPion);
+  EB("AGCNPE",p.agc); EB("HGCNPE",p.hgc); EB("NGCNPE",p.ngc); EB("S2YNPE",p.s2ynpe);
+  EB("S1XEnergy",p.s1xe); EB("S1YEnergy",p.s1ye); EB("S2XEnergy",p.s2xe); EB("S2YEnergy",p.s2ye);
+  EB("S1XTime",p.s1xt); EB("S1YTime",p.s1yt); EB("S2XTime",p.s2xt); EB("S2YTime",p.s2yt);
+  EB("CalEnergy",p.cal);
+
+  int deid,dprim,did,dparent,dstage,dS1,dH,dA,dS,dC,dE,dTrig,dNTrig,dANPE,dHNPE,dNNPE,dOldPion;
+  std::string dCreator,dEndVol,dEndProc,dStageName;
+#define DB(n,v) dd.Branch(n,&v)
+  DB("EventID",deid); DB("TargetPDG",targetPDG); DB("PrimaryTrackID",dprim);
+  DB("DaughterTrackID",did); DB("DaughterParentID",dparent); DB("CreatorProcess",dCreator);
+  DB("ReachedS1",dS1); DB("ReachedHGC",dH); DB("ReachedAGC",dA); DB("ReachedS2",dS);
+  DB("ReachedCal",dC); DB("ExitedCal",dE); DB("EndVolume",dEndVol); DB("EndProcess",dEndProc);
+  DB("FurthestStage",dstage); DB("FurthestStageName",dStageName); DB("TriggerPass",dTrig);
+  DB("NTrig",dNTrig); DB("AGCNPE",dANPE); DB("HGCNPE",dHNPE); DB("NGCNPE",dNNPE);
+  DB("OldPionPIDPass",dOldPion);
+
+  int aeid,aid,apar,agen,aPrimary,aDirect,aDesc,aS1,aH,aA,aS,aC,aE;
+  std::string aCreator,aEndVol,aEndProc;
+#define AB(n,v) at.Branch(n,&v)
+  AB("EventID",aeid); AB("TargetPDG",targetPDG); AB("TrackID",aid); AB("ParentID",apar);
+  AB("GenerationDepth",agen); AB("IsPrimary",aPrimary); AB("IsDirectDaughter",aDirect);
+  AB("IsPrimaryDescendant",aDesc); AB("ReachedS1",aS1); AB("ReachedHGC",aH);
+  AB("ReachedAGC",aA); AB("ReachedS2",aS); AB("ReachedCal",aC); AB("ExitedCal",aE);
+  AB("CreatorProcess",aCreator); AB("EndVolume",aEndVol); AB("EndProcess",aEndProc);
+
+  int te,tid,tpar,tpdg,rs1,rh,ra,rs2,rc,re;
+  char creator[256]{},ev[256]{},eproc[256]{};
+  tt->SetCacheSize(32LL*1024*1024); tt->SetBranchStatus("*",0);
+#define TB(n,v) tt->SetBranchStatus(n,1); tt->SetBranchAddress(n,v)
+  TB("EventID",&te); TB("TrackID",&tid); TB("ParentID",&tpar); TB("PDG",&tpdg);
+  TB("CreatorProcess",creator); TB("EndVolume",ev); TB("EndProcess",eproc);
+  TB("ReachedS1",&rs1); TB("ReachedHGC",&rh); TB("ReachedAGC",&ra);
+  TB("ReachedS2",&rs2); TB("ReachedCal",&rc); TB("ExitedCal",&re);
+
+  long long missingPA=0,badPrimary=0,duplicates=0,events=0;
+  std::vector<Tr> tracks; int current=-1;
+  auto process=[&](){
+    if(tracks.empty()) return;
+    eid=current; auto pi=pas.find(eid); if(pi==pas.end()){++missingPA;return;} p=pi->second;
+    std::unordered_map<int,size_t> byid; byid.reserve(tracks.size()*2);
+    for(size_t i=0;i<tracks.size();++i) if(!byid.emplace(tracks[i].id,i).second) ++duplicates;
+    std::vector<size_t> prim;
+    for(size_t i=0;i<tracks.size();++i) if(tracks[i].parent==0&&tracks[i].pdg==targetPDG) prim.push_back(i);
+    if(prim.size()!=1){++badPrimary;return;}
+    const Tr& pr=tracks[prim[0]]; primaryID=pr.id; pS1=pr.s1;pHGC=pr.hgc;pAGC=pr.agc;
+    pS2=pr.s2;pCal=pr.cal;pExit=pr.exit;pEndVol=pr.endVol;pEndProc=pr.endProc;
+    nDirect=dHGC=dAGC=dS2=dCal=dExit=0;bestID=-1;bestStage=-1;
+    nTarget=nDesc=anyHGC=anyAGC=anyS2=anyCal=descHGC=descAGC=descS2=descCal=0;
+    auto ancestry=[&](const Tr&t,int&depth){depth=0;int par=t.parent;std::unordered_set<int> guard;
+      while(par&&guard.insert(par).second){++depth;if(par==primaryID)return true;
+        auto q=byid.find(par);if(q==byid.end())return false;par=tracks[q->second].parent;}return false;};
+    for(const Tr&t:tracks) if(t.pdg==targetPDG){
+      ++nTarget;int depth=0;bool isp=t.parent==0&&t.id==primaryID,direct=t.parent==primaryID;
+      bool desc=direct||ancestry(t,depth);if(direct)depth=1;if(desc&&!isp)++nDesc;
+      anyHGC|=t.hgc;anyAGC|=t.agc;anyS2|=t.s2;anyCal|=t.cal;
+      if(desc&&!isp){descHGC|=t.hgc;descAGC|=t.agc;descS2|=t.s2;descCal|=t.cal;}
+      aeid=eid;aid=t.id;apar=t.parent;agen=isp?0:depth;aPrimary=isp;aDirect=direct;aDesc=desc&&!isp;
+      aS1=t.s1;aH=t.hgc;aA=t.agc;aS=t.s2;aC=t.cal;aE=t.exit;aCreator=t.creator;
+      aEndVol=t.endVol;aEndProc=t.endProc;at.Fill();
+      if(direct){++nDirect;dHGC|=t.hgc;dAGC|=t.agc;dS2|=t.s2;dCal|=t.cal;dExit|=t.exit;
+        int st=stage(t);if(st>bestStage){bestStage=st;bestID=t.id;}
+        deid=eid;dprim=primaryID;did=t.id;dparent=t.parent;dCreator=t.creator;dS1=t.s1;
+        dH=t.hgc;dA=t.agc;dS=t.s2;dC=t.cal;dE=t.exit;dEndVol=t.endVol;dEndProc=t.endProc;
+        dstage=st;dStageName=stageName(st);dNTrig=trig(p);dTrig=dNTrig>=3;dANPE=p.agc;
+        dHNPE=p.hgc;dNNPE=p.ngc;dOldPion=pid(p,mom)==PION;dd.Fill();}
+    }
+    hasDirect=nDirect>0;directPID=dHGC||dAGC;descPID=descHGC||descAGC;
+    anyPID=anyHGC||anyAGC;primaryPID=pHGC||pAGC;bestStageName=bestStage>=0?stageName(bestStage):"None";
+    ts1x=p.s1xe>.5;ts1y=p.s1ye>.5&&std::abs(p.s1yt-p.s1xt)<20;
+    ts2x=p.s2xe>.5&&std::abs(p.s2xt-p.s1xt)<20;ts2y=p.s2ynpe>100&&std::abs(p.s2yt-p.s1xt)<20;
+    ntr=ts1x+ts1y+ts2x+ts2y;tpass=ntr>=3;oldClass=pid(p,mom);oldPion=oldClass==PION;
+    es.Fill();++events;
+  };
+  const long long entries=max>=0?std::min<long long>(max,tt->GetEntries()):tt->GetEntries();
+  for(long long i=0;i<entries;++i){tt->GetEntry(i);if(current!=-1&&te!=current){process();tracks.clear();}
+    current=te;tracks.push_back({tid,tpar,tpdg,creator,ev,eproc,(bool)rs1,(bool)rh,(bool)ra,
+      (bool)rs2,(bool)rc,(bool)re});if(i&&i%50000000==0)std::cout<<"PROGRESS "<<i<<"/"<<entries<<"\n";}
+  process();
+  std::cout<<"TIMING read_tracks_classify_s "<<phase.RealTime()<<" tracks "<<entries<<" events "<<events<<"\n";
+  phase.Start(true);fo.cd();es.Write();dd.Write();at.Write();
+  TTree meta("Metadata","study metadata");std::string input=in,pidDef="ReachedHGC OR ReachedAGC";
+  std::string warning="AGCNPE/HGCNPE are event-level; target-track presence is correlation, not NPE attribution";
+  long long read=entries;meta.Branch("InputFile",&input);meta.Branch("TargetPDG",&targetPDG);
+  meta.Branch("PIDRegionDefinition",&pidDef);meta.Branch("NPEInterpretation",&warning);
+  meta.Branch("TrackEntriesRead",&read);meta.Branch("MissingPAEvents",&missingPA);
+  meta.Branch("MalformedPrimaryEvents",&badPrimary);meta.Branch("DuplicateEventTrackIDs",&duplicates);
+  meta.Fill();meta.Write();fo.Close();
+  std::cout<<"TIMING write_ROOT_s "<<phase.RealTime()<<"\nTOTAL_s "<<total.RealTime()<<"\nOUTPUT "<<out<<"\n";
+  return (missingPA||badPrimary||duplicates)?3:0;
 }

@@ -100,30 +100,9 @@ namespace PAAnalysis
             kPDG,
             kCreatorProcess,
 
-            kStartX,
-            kStartY,
-            kStartZ,
-
-            kStartPx,
-            kStartPy,
-            kStartPz,
-            kStartKE,
-
-            kStartVolume,
-
-            kEndX,
-            kEndY,
-            kEndZ,
-
-            kEndPx,
-            kEndPy,
-            kEndPz,
-            kEndKE,
 
             kEndVolume,
             kEndProcess,
-
-            kTrackLength,
 
             kReachedS1,
             kReachedHGC,

@@ -170,16 +170,7 @@ void PATrackingAction::ResetRecord(TrackRecord& record) const
     record.pdg = 0;
 
     record.creatorProcess = "Unknown";
-    record.startVolume = "Unknown";
 
-    record.startX = 0.0;
-    record.startY = 0.0;
-    record.startZ = 0.0;
-
-    record.startPx = 0.0;
-    record.startPy = 0.0;
-    record.startPz = 0.0;
-    record.startKE = 0.0;
 
     record.reachedS1 = false;
     record.reachedHGC = false;
@@ -262,25 +253,6 @@ void PATrackingAction::PreUserTrackingAction(const G4Track* track)
         record.creatorProcess = "Unknown";
     }
 
-    record.startVolume =
-        GetVolumeName(track->GetVolume(), "OutOfWorld");
-
-    /*
-     * Geant4 stores quantities in its internal unit system.
-     *
-     * Dividing by cm produces numerical values in centimeters.
-     * Dividing by GeV produces numerical values in GeV or GeV/c.
-     */
-    const G4ThreeVector& position = track->GetPosition();
-    record.startX = position.x() / cm;
-    record.startY = position.y() / cm;
-    record.startZ = position.z() / cm;
-
-    const G4ThreeVector& momentum = track->GetMomentum();
-    record.startPx = momentum.x() / GeV;
-    record.startPy = momentum.y() / GeV;
-    record.startPz = momentum.z() / GeV;
-    record.startKE = track->GetKineticEnergy() / GeV;
 
     fTrackRecords[trackID] = record;
 }
@@ -315,8 +287,7 @@ void PATrackingAction::PostUserTrackingAction(const G4Track* track)
 
     TrackRecord& record = found->second;
 
-    const G4ThreeVector& endPosition = track->GetPosition();
-    const G4ThreeVector& endMomentum = track->GetMomentum();
+
 
     const G4String endVolume = GetEndVolumeName(track);
     const G4String endProcess = GetEndProcessName(track);
@@ -357,80 +328,6 @@ void PATrackingAction::PostUserTrackingAction(const G4Track* track)
         PAAnalysis::Tracks::kCreatorProcess,
         record.creatorProcess);
 
-    analysisManager->FillNtupleDColumn(
-        PAAnalysis::kTracksNtuple,
-        PAAnalysis::Tracks::kStartX,
-        record.startX);
-
-    analysisManager->FillNtupleDColumn(
-        PAAnalysis::kTracksNtuple,
-        PAAnalysis::Tracks::kStartY,
-        record.startY);
-
-    analysisManager->FillNtupleDColumn(
-        PAAnalysis::kTracksNtuple,
-        PAAnalysis::Tracks::kStartZ,
-        record.startZ);
-
-    analysisManager->FillNtupleDColumn(
-        PAAnalysis::kTracksNtuple,
-        PAAnalysis::Tracks::kStartPx,
-        record.startPx);
-
-    analysisManager->FillNtupleDColumn(
-        PAAnalysis::kTracksNtuple,
-        PAAnalysis::Tracks::kStartPy,
-        record.startPy);
-
-    analysisManager->FillNtupleDColumn(
-        PAAnalysis::kTracksNtuple,
-        PAAnalysis::Tracks::kStartPz,
-        record.startPz);
-
-    analysisManager->FillNtupleDColumn(
-        PAAnalysis::kTracksNtuple,
-        PAAnalysis::Tracks::kStartKE,
-        record.startKE);
-
-    analysisManager->FillNtupleSColumn(
-        PAAnalysis::kTracksNtuple,
-        PAAnalysis::Tracks::kStartVolume,
-        record.startVolume);
-
-    analysisManager->FillNtupleDColumn(
-        PAAnalysis::kTracksNtuple,
-        PAAnalysis::Tracks::kEndX,
-        endPosition.x() / cm);
-
-    analysisManager->FillNtupleDColumn(
-        PAAnalysis::kTracksNtuple,
-        PAAnalysis::Tracks::kEndY,
-        endPosition.y() / cm);
-
-    analysisManager->FillNtupleDColumn(
-        PAAnalysis::kTracksNtuple,
-        PAAnalysis::Tracks::kEndZ,
-        endPosition.z() / cm);
-
-    analysisManager->FillNtupleDColumn(
-        PAAnalysis::kTracksNtuple,
-        PAAnalysis::Tracks::kEndPx,
-        endMomentum.x() / GeV);
-
-    analysisManager->FillNtupleDColumn(
-        PAAnalysis::kTracksNtuple,
-        PAAnalysis::Tracks::kEndPy,
-        endMomentum.y() / GeV);
-
-    analysisManager->FillNtupleDColumn(
-        PAAnalysis::kTracksNtuple,
-        PAAnalysis::Tracks::kEndPz,
-        endMomentum.z() / GeV);
-
-    analysisManager->FillNtupleDColumn(
-        PAAnalysis::kTracksNtuple,
-        PAAnalysis::Tracks::kEndKE,
-        track->GetKineticEnergy() / GeV);
 
     analysisManager->FillNtupleSColumn(
         PAAnalysis::kTracksNtuple,
@@ -442,10 +339,7 @@ void PATrackingAction::PostUserTrackingAction(const G4Track* track)
         PAAnalysis::Tracks::kEndProcess,
         endProcess);
 
-    analysisManager->FillNtupleDColumn(
-        PAAnalysis::kTracksNtuple,
-        PAAnalysis::Tracks::kTrackLength,
-        track->GetTrackLength() / cm);
+
 
     analysisManager->FillNtupleIColumn(
         PAAnalysis::kTracksNtuple,

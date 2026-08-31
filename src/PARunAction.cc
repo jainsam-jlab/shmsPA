@@ -100,48 +100,10 @@ PARunAction::PARunAction(PAEventAction* eventAction)
     analysisManager->CreateNtupleSColumn(
         PAAnalysis::kTracksNtuple, "CreatorProcess");
 
-    analysisManager->CreateNtupleDColumn(
-        PAAnalysis::kTracksNtuple, "StartX");
-    analysisManager->CreateNtupleDColumn(
-        PAAnalysis::kTracksNtuple, "StartY");
-    analysisManager->CreateNtupleDColumn(
-        PAAnalysis::kTracksNtuple, "StartZ");
-
-    analysisManager->CreateNtupleDColumn(
-        PAAnalysis::kTracksNtuple, "StartPx");
-    analysisManager->CreateNtupleDColumn(
-        PAAnalysis::kTracksNtuple, "StartPy");
-    analysisManager->CreateNtupleDColumn(
-        PAAnalysis::kTracksNtuple, "StartPz");
-    analysisManager->CreateNtupleDColumn(
-        PAAnalysis::kTracksNtuple, "StartKE");
-
-    analysisManager->CreateNtupleSColumn(
-        PAAnalysis::kTracksNtuple, "StartVolume");
-
-    analysisManager->CreateNtupleDColumn(
-        PAAnalysis::kTracksNtuple, "EndX");
-    analysisManager->CreateNtupleDColumn(
-        PAAnalysis::kTracksNtuple, "EndY");
-    analysisManager->CreateNtupleDColumn(
-        PAAnalysis::kTracksNtuple, "EndZ");
-
-    analysisManager->CreateNtupleDColumn(
-        PAAnalysis::kTracksNtuple, "EndPx");
-    analysisManager->CreateNtupleDColumn(
-        PAAnalysis::kTracksNtuple, "EndPy");
-    analysisManager->CreateNtupleDColumn(
-        PAAnalysis::kTracksNtuple, "EndPz");
-    analysisManager->CreateNtupleDColumn(
-        PAAnalysis::kTracksNtuple, "EndKE");
-
     analysisManager->CreateNtupleSColumn(
         PAAnalysis::kTracksNtuple, "EndVolume");
     analysisManager->CreateNtupleSColumn(
         PAAnalysis::kTracksNtuple, "EndProcess");
-
-    analysisManager->CreateNtupleDColumn(
-        PAAnalysis::kTracksNtuple, "TrackLength");
 
     analysisManager->CreateNtupleIColumn(
         PAAnalysis::kTracksNtuple, "ReachedS1");

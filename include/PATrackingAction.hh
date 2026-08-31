@@ -109,16 +109,7 @@ class PATrackingAction : public G4UserTrackingAction
         G4int pdg;
 
         G4String creatorProcess;
-        G4String startVolume;
 
-        G4double startX;
-        G4double startY;
-        G4double startZ;
-
-        G4double startPx;
-        G4double startPy;
-        G4double startPz;
-        G4double startKE;
 
         G4bool reachedS1;
         G4bool reachedHGC;

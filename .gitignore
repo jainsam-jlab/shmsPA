@@ -28,6 +28,7 @@ slurm-*.err
 /v1_v3_diagnostics/
 /v1_v3_diagnostics_r/
 /v3_results/
+/absorption_results/
 
 # Generated validation output
 /pion5.422GeV100000_validation.json
