@@ -1,0 +1,58 @@
+# CMake/build products
+/build/
+/cmake-build-*/
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# ROOT data and generated ROOT histograms
+*.root
+
+# External/volatile output link
+/out
+
+# Slurm output
+/slurm_logs/
+slurm-*.out
+slurm-*.err
+
+# Generated analysis results
+/Pion_Absorption_Corr_NPE_Distributions_out/
+/secondary_pion_truth_results/
+/secondary_s2_results/
+/v1_v3_diagnostics/
+/v1_v3_diagnostics_r/
+/v3_results/
+
+# Generated validation output
+/pion5.422GeV100000_validation.json
+
+# LaTeX temporary files
+*.aux
+*.log
+*.toc
+*.synctex.gz
+*.fls
+*.fdb_latexmk
+*.out
+
+# Crash/debug files
+core
+core.*
+*.dSYM/
+
+# Editor and operating-system files
+*~
+*.swp
+*.swo
+.DS_Store
+
+# Private pion-absorption notes and presentation figures
+/PionAbsorption_Geant4_Analysis_Note.tex
+/PionAbsorption_Geant4_Analysis_Note.pdf
+/figures/

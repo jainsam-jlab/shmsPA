@@ -1,4 +1,5 @@
 #include "PARunAction.hh"
+#include "PAAnalysis.hh"
 #include "PAEventAction.hh"
 #include "G4AnalysisManager.hh"
 
@@ -20,26 +21,145 @@ PARunAction::PARunAction(PAEventAction* eventAction)
   analysisManager->SetFileName("PAOutData.root"); //default, can overwrite in macro
 
   // Creating ntuple
-  if ( fEventAction ) {
-    analysisManager->CreateNtuple("PA", "Hits");
-    analysisManager->CreateNtupleDColumn("S1XTime");    // column Id = 0
-    analysisManager->CreateNtupleDColumn("S1YTime");    // column Id = 1
-    analysisManager->CreateNtupleDColumn("S2XTime");    // column Id = 2
-    analysisManager->CreateNtupleDColumn("S2YTime");    // column Id = 3
-    analysisManager->CreateNtupleDColumn("S1XEnergy");    // column Id = 4
-    analysisManager->CreateNtupleDColumn("S1YEnergy");    // column Id = 5
-    analysisManager->CreateNtupleDColumn("S2XEnergy");    // column Id = 6
-    analysisManager->CreateNtupleDColumn("S2YEnergy");    // column Id = 7
-    analysisManager->CreateNtupleIColumn("S2YNPE");    // column Id = 8
-    analysisManager->CreateNtupleIColumn("CopyNo");    // column Id = 9
-    analysisManager->CreateNtupleIColumn("AGCNPE");    // column Id = 10
-    analysisManager->CreateNtupleIColumn("HGCNPE");    // column Id = 11
-    analysisManager->CreateNtupleIColumn("NGCNPE");    // column Id = 12
-    analysisManager->CreateNtupleDColumn("CalEnergy");    // column Id = 13
-    analysisManager->FinishNtuple();
+  //if ( fEventAction ) {
+  /*
+   * Define the ROOT schemas.
+   *
+   * CreateNtuple() creates a tree-like ntuple and returns its integer ID.
+   * CreateNtuple...Column() appends a typed column.
+   * FinishNtuple() completes that ntuple's schema.
+   *
+   * PA is created first, so its ID is 0.
+   * Tracks is created second, so its ID is 1.
+   */
+  if (fEventAction != nullptr) {
+    // ------------------------------------------------------------------
+    // Existing event-level PA tree
+    // ------------------------------------------------------------------
+    analysisManager->CreateNtuple("PA", "Hits and event summary");
+
+    analysisManager->CreateNtupleDColumn(
+        PAAnalysis::kPANtuple, "S1XTime");
+    analysisManager->CreateNtupleDColumn(
+        PAAnalysis::kPANtuple, "S1YTime");
+    analysisManager->CreateNtupleDColumn(
+        PAAnalysis::kPANtuple, "S2XTime");
+    analysisManager->CreateNtupleDColumn(
+        PAAnalysis::kPANtuple, "S2YTime");
+
+    analysisManager->CreateNtupleDColumn(
+        PAAnalysis::kPANtuple, "S1XEnergy");
+    analysisManager->CreateNtupleDColumn(
+        PAAnalysis::kPANtuple, "S1YEnergy");
+    analysisManager->CreateNtupleDColumn(
+        PAAnalysis::kPANtuple, "S2XEnergy");
+    analysisManager->CreateNtupleDColumn(
+        PAAnalysis::kPANtuple, "S2YEnergy");
+
+    analysisManager->CreateNtupleIColumn(
+        PAAnalysis::kPANtuple, "S2YNPE");
+    analysisManager->CreateNtupleIColumn(
+        PAAnalysis::kPANtuple, "CopyNo");
+    analysisManager->CreateNtupleIColumn(
+        PAAnalysis::kPANtuple, "AGCNPE");
+    analysisManager->CreateNtupleIColumn(
+        PAAnalysis::kPANtuple, "HGCNPE");
+    analysisManager->CreateNtupleIColumn(
+        PAAnalysis::kPANtuple, "NGCNPE");
+    analysisManager->CreateNtupleDColumn(
+        PAAnalysis::kPANtuple, "CalEnergy");
+
+    // New columns are appended after the original 14 columns.
+    analysisManager->CreateNtupleIColumn(
+        PAAnalysis::kPANtuple, "EventID");
+    analysisManager->CreateNtupleIColumn(
+        PAAnalysis::kPANtuple, "PrimaryPDG");
+    analysisManager->CreateNtupleIColumn(
+        PAAnalysis::kPANtuple, "PrimaryReachedCal");
+    analysisManager->CreateNtupleIColumn(
+        PAAnalysis::kPANtuple, "PrimaryExitedCal");
+
+    analysisManager->FinishNtuple(
+        PAAnalysis::kPANtuple);
+
+    // ------------------------------------------------------------------
+    // New one-row-per-track truth tree
+    // ------------------------------------------------------------------
+    analysisManager->CreateNtuple(
+        "Tracks",
+        "One row per non-optical Geant4 track");
+
+    analysisManager->CreateNtupleIColumn(
+        PAAnalysis::kTracksNtuple, "EventID");
+    analysisManager->CreateNtupleIColumn(
+        PAAnalysis::kTracksNtuple, "TrackID");
+    analysisManager->CreateNtupleIColumn(
+        PAAnalysis::kTracksNtuple, "ParentID");
+    analysisManager->CreateNtupleIColumn(
+        PAAnalysis::kTracksNtuple, "PDG");
+    analysisManager->CreateNtupleSColumn(
+        PAAnalysis::kTracksNtuple, "CreatorProcess");
+
+    analysisManager->CreateNtupleDColumn(
+        PAAnalysis::kTracksNtuple, "StartX");
+    analysisManager->CreateNtupleDColumn(
+        PAAnalysis::kTracksNtuple, "StartY");
+    analysisManager->CreateNtupleDColumn(
+        PAAnalysis::kTracksNtuple, "StartZ");
+
+    analysisManager->CreateNtupleDColumn(
+        PAAnalysis::kTracksNtuple, "StartPx");
+    analysisManager->CreateNtupleDColumn(
+        PAAnalysis::kTracksNtuple, "StartPy");
+    analysisManager->CreateNtupleDColumn(
+        PAAnalysis::kTracksNtuple, "StartPz");
+    analysisManager->CreateNtupleDColumn(
+        PAAnalysis::kTracksNtuple, "StartKE");
+
+    analysisManager->CreateNtupleSColumn(
+        PAAnalysis::kTracksNtuple, "StartVolume");
+
+    analysisManager->CreateNtupleDColumn(
+        PAAnalysis::kTracksNtuple, "EndX");
+    analysisManager->CreateNtupleDColumn(
+        PAAnalysis::kTracksNtuple, "EndY");
+    analysisManager->CreateNtupleDColumn(
+        PAAnalysis::kTracksNtuple, "EndZ");
+
+    analysisManager->CreateNtupleDColumn(
+        PAAnalysis::kTracksNtuple, "EndPx");
+    analysisManager->CreateNtupleDColumn(
+        PAAnalysis::kTracksNtuple, "EndPy");
+    analysisManager->CreateNtupleDColumn(
+        PAAnalysis::kTracksNtuple, "EndPz");
+    analysisManager->CreateNtupleDColumn(
+        PAAnalysis::kTracksNtuple, "EndKE");
+
+    analysisManager->CreateNtupleSColumn(
+        PAAnalysis::kTracksNtuple, "EndVolume");
+    analysisManager->CreateNtupleSColumn(
+        PAAnalysis::kTracksNtuple, "EndProcess");
+
+    analysisManager->CreateNtupleDColumn(
+        PAAnalysis::kTracksNtuple, "TrackLength");
+
+    analysisManager->CreateNtupleIColumn(
+        PAAnalysis::kTracksNtuple, "ReachedS1");
+    analysisManager->CreateNtupleIColumn(
+        PAAnalysis::kTracksNtuple, "ReachedHGC");
+    analysisManager->CreateNtupleIColumn(
+        PAAnalysis::kTracksNtuple, "ReachedAGC");
+    analysisManager->CreateNtupleIColumn(
+        PAAnalysis::kTracksNtuple, "ReachedS2");
+    analysisManager->CreateNtupleIColumn(
+        PAAnalysis::kTracksNtuple, "ReachedCal");
+    analysisManager->CreateNtupleIColumn(
+        PAAnalysis::kTracksNtuple, "ExitedCal");
+
+    analysisManager->FinishNtuple(
+        PAAnalysis::kTracksNtuple);
   }
 }
-
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
 PARunAction::~PARunAction()

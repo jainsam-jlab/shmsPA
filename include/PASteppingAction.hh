@@ -12,15 +12,22 @@
 #include "PAEventAction.hh"
 #include "globals.hh"
 
+class PATrackingAction;
 
 class PASteppingAction : public G4UserSteppingAction
 {
   public:
-    PASteppingAction(PAEventAction*);
+        /*
+     * Both pointers are non-owning. Geant4 owns the registered action
+     * objects and keeps them alive for the run.
+     */
+    PASteppingAction(PAEventAction* eventAction,
+                     PATrackingAction* trackingAction);
+
     virtual ~PASteppingAction();
 
-    // method from the base class
-    virtual void UserSteppingAction(const G4Step*);
+    // Geant4 calls this once for every step of every transported track.
+    void UserSteppingAction(const G4Step* step) override;
     //void SetVerbose(G4int verbose){fVerbose = verbose;};
     /**
      * virtual void SetNPE(G4int npe){NPE=npe;}
@@ -35,12 +42,15 @@ class PASteppingAction : public G4UserSteppingAction
 
   private:
     G4int fVerbose;
-    PAEventAction *fEventAction;
-    G4int S2YNPE;
-    G4int AGCNPE;
-    G4int HGCNPE;
-    G4int NGCNPE;
-    G4double edep;
+
+    // Non-owning link to event-level detector-response accumulators.
+    PAEventAction* fEventAction;
+
+    /*
+     * Non-owning link to the current track's temporary truth record.
+     * PASteppingAction sets flags; PATrackingAction writes the final row.
+     */
+    PATrackingAction* fTrackingAction;
     //G4int NGC_NPE;
     //G4int HGC_NPE;
 };

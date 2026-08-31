@@ -1,0 +1,25 @@
+## Macro for SHMS pion material-loss simulation
+
+/run/initialize
+
+## Use focal-plane kinematics
+/PA/generator/useGenerated true
+/PA/generator/setInFile run5055kine.txt
+
+## Pion decay is already included in SIMC
+/process/inactivate Decay pi+
+/process/inactivate Decay kaon+
+/run/physicsModified
+
+## Central SHMS momentum
+/PA/generator/momentum 5.422 GeV
+
+## Primary particle
+/gun/particle pi+
+
+## ROOT output
+/analysis/setFileName out/pion5.422GeV100000.root
+
+## Number of generated events
+/run/printProgress 100
+/run/beamOn 100000

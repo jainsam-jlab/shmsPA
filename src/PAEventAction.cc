@@ -1,4 +1,5 @@
 #include "PAEventAction.hh"
+#include "PAAnalysis.hh"
 #include "PASteppingAction.hh"
 #include "PAHodoscopeHit.hh"
 #include "PAConstants.hh"
@@ -46,8 +47,16 @@ G4VHitsCollection* GetHC(const G4Event* event, G4int collId) {
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
 PAEventAction::PAEventAction()
-: G4UserEventAction(), 
-  fHodHCID  {{ -1, -1 }}
+: G4UserEventAction(),
+  fHodHCID {{ -1, -1, -1, -1 }},
+  S2YNPE(0),
+  AGCNPE(0),
+  HGCNPE(0),
+  NGCNPE(0),
+  CalEnergy(0.0),
+  PrimaryPDG(0),
+  PrimaryReachedCal(false),
+  PrimaryExitedCal(false)
       // std::array<T, N> is an aggregate that contains a C array. 
       // To initialize it, we need outer braces for the class itself 
       // and inner braces for the C array
@@ -87,6 +96,11 @@ void PAEventAction::BeginOfEventAction(const G4Event*)
   HGCNPE=0;
   NGCNPE=0;
   CalEnergy=0;
+
+  // No primary-pion summary has been reported yet for this new event.
+  PrimaryPDG = 0;
+  PrimaryReachedCal = false;
+  PrimaryExitedCal = false;
 }     
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
@@ -104,19 +118,70 @@ void PAEventAction::EndOfEventAction(const G4Event* event)
 
     for (unsigned int i = 0; i<hc->GetSize(); ++i) {
       auto hit = static_cast<PAHodoscopeHit*>(hc->GetHit(i));
-      analysisManager->FillNtupleDColumn(iDet, hit->GetTime());
-      analysisManager->FillNtupleDColumn(iDet+4, hit->GetEdep()); 
+            analysisManager->FillNtupleDColumn(
+          PAAnalysis::kPANtuple,
+          PAAnalysis::PA::kS1XTime + iDet,
+          hit->GetTime());
+
+      analysisManager->FillNtupleDColumn(
+          PAAnalysis::kPANtuple,
+          PAAnalysis::PA::kS1XEnergy + iDet,
+          hit->GetEdep());
     }
   }
   //Fill  Ntuple: NPE numbers 
-  analysisManager->FillNtupleIColumn(8,S2YNPE);
-  analysisManager->FillNtupleIColumn(10,AGCNPE);
-  analysisManager->FillNtupleIColumn(11,HGCNPE);
-  analysisManager->FillNtupleIColumn(12,NGCNPE);
-  analysisManager->FillNtupleDColumn(13,CalEnergy);
-  
-  //add row to Ntuple
-  analysisManager->AddNtupleRow();
+  // Fill the existing detector-response columns in the PA event tree.
+  analysisManager->FillNtupleIColumn(
+      PAAnalysis::kPANtuple,
+      PAAnalysis::PA::kS2YNPE,
+      S2YNPE);
+
+  analysisManager->FillNtupleIColumn(
+      PAAnalysis::kPANtuple,
+      PAAnalysis::PA::kAGCNPE,
+      AGCNPE);
+
+  analysisManager->FillNtupleIColumn(
+      PAAnalysis::kPANtuple,
+      PAAnalysis::PA::kHGCNPE,
+      HGCNPE);
+
+  analysisManager->FillNtupleIColumn(
+      PAAnalysis::kPANtuple,
+      PAAnalysis::PA::kNGCNPE,
+      NGCNPE);
+
+  analysisManager->FillNtupleDColumn(
+      PAAnalysis::kPANtuple,
+      PAAnalysis::PA::kCalEnergy,
+      CalEnergy);
+
+  /*
+   * EventID is supplied by Geant4. No separate global event counter is
+   * necessary.
+   */
+  analysisManager->FillNtupleIColumn(
+      PAAnalysis::kPANtuple,
+      PAAnalysis::PA::kEventID,
+      event->GetEventID());
+
+  analysisManager->FillNtupleIColumn(
+      PAAnalysis::kPANtuple,
+      PAAnalysis::PA::kPrimaryPDG,
+      PrimaryPDG);
+
+  analysisManager->FillNtupleIColumn(
+      PAAnalysis::kPANtuple,
+      PAAnalysis::PA::kPrimaryReachedCal,
+      PrimaryReachedCal ? 1 : 0);
+
+  analysisManager->FillNtupleIColumn(
+      PAAnalysis::kPANtuple,
+      PAAnalysis::PA::kPrimaryExitedCal,
+      PrimaryExitedCal ? 1 : 0);
+
+  // Commit exactly one event-level row to PA.
+  analysisManager->AddNtupleRow(PAAnalysis::kPANtuple);
 
   //
   // Print diagnostics: for debugging purposes
