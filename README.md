@@ -65,6 +65,32 @@ runs the direct-daughter truth analysis, and generates the report and plots.
 Focal-plane coordinates are read from `run5055kine.txt`; the requested event
 count cannot exceed the number of data rows in that file.
 
+### Decay configuration
+
+The generated simulation macro currently disables Geant4 decay for `pi+` and
+`kaon+`. This setting is retained from the existing SHMS/SIMC workflow, where
+these decays are treated upstream, to avoid applying the decay treatment again
+during Geant4 transport. The driver does not disable decay for `pi-` or
+`kaon-`.
+
+### Detector configuration
+
+`detectors.dat` controls detector geometry options. `Use-NGC` controls whether
+the NGC is enabled, and `Aero-Tray` selects the aerogel tray configuration. The
+aerogel tray should match the SHMS configuration and kinematics being
+simulated. The repository's current settings are `Use-NGC: 1` and
+`Aero-Tray: 11`; these are defaults for this repository, not universal
+settings.
+
+### Generated kinematics
+
+Each row of `run5055kine.txt` contains five focal-plane quantities, in order:
+`xfp`, `yfp`, `xpfp`, `ypfp`, and `delta`.
+`PAPrimaryGeneratorAction` uses them to construct the generated particle's
+position, momentum direction, and momentum magnitude relative to the central
+SHMS momentum. The exact provenance of this file is not documented here and
+should be recorded separately.
+
 ## Output
 
 Each run is written under:
@@ -103,3 +129,17 @@ AGC and HGC NPE values are event-level quantities. A truth track reaching a
 detector establishes a correlation with the event response; it does not assign
 individual photoelectrons to that track. The reach and direct-daughter truth
 study uses the selected PDG for every supported particle.
+
+## Future updates
+
+- `PAPrimaryGeneratorAction` currently loads generated-event kinematics during
+  generator initialization. The `/PA/generator/setInFile FILE` command is
+  retained, but changing the filename later in a macro is not yet guaranteed
+  to reload the input vectors correctly. The currently tested
+  `./run_absorption_study.sh PARTICLE MOMENTUM_GEV EVENTS` workflow uses
+  `run5055kine.txt`. A future update should allow an arbitrary macro-selected
+  file to be loaded or reloaded safely.
+- The shell driver prevents a request larger than the number of available
+  `run5055kine.txt` rows. The C++ generator should also gain explicit
+  exhaustion protection so it cannot reuse the final kinematic row or index
+  beyond the loaded input.

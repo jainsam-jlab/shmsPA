@@ -10,15 +10,16 @@
  *   |      +-- PreUserTrackingAction()
  *   |      |      Create a record, or recover a suspended track's record.
  *   |      |      Filter optical photons from truth output.
- *   |      |      Save starting position, momentum, volume, IDs and process.
+ *   |      |      Record EventID, TrackID, ParentID, PDG, and creator process.
+ *   |      |      Initialize the detector-reach flags.
  *   |      |
  *   |      +-- Geant4 transports many G4Step objects
  *   |      |      PASteppingAction sets detector-crossing flags.
  *   |      |
  *   |      +-- PostUserTrackingAction()
- *   |             Read final position, momentum, process and volume.
- *   |             Convert Geant4 units to cm and GeV.
- *   |             Write exactly one row into Tracks.
+ *   |             Identify the terminal volume and defining process.
+ *   |             Write exactly one Tracks row for a non-optical track.
+ *   |             Pass the generated-primary summary to PAEventAction.
  *   |
  *   +-- Geant4 begins the next track
  *          ...
@@ -217,7 +218,8 @@ void PATrackingAction::PreUserTrackingAction(const G4Track* track)
     /*
      * A suspended track is later presented to PreUserTrackingAction again.
      * If its record already exists for this event, preserve the original
-     * starting state and all detector flags collected before suspension.
+     * identifiers, creator process, and detector flags collected before
+     * suspension.
      */
     const auto existing = fTrackRecords.find(trackID);
     if (existing != fTrackRecords.end() &&
@@ -378,17 +380,15 @@ void PATrackingAction::PostUserTrackingAction(const G4Track* track)
     analysisManager->AddNtupleRow(PAAnalysis::kTracksNtuple);
 
     /*
-     * Update the event-level summary only for a primary positive pion.
+     * Update the event-level summary for the generated primary particle.
      *
      * ParentID == 0 means primary.
-     * PDG == 211 means pi+.
-     *
-     * We do not rely only on TrackID == 1.
+     * The framework generates one primary per event. We use ParentID rather
+     * than relying only on TrackID == 1.
      */
     if (record.parentID == 0 &&
-        record.pdg == 211 &&
         fEventAction != nullptr) {
-        fEventAction->SetPrimaryPionSummary(
+        fEventAction->SetPrimarySummary(
             record.pdg,
             record.reachedCal,
             record.exitedCal);

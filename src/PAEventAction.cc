@@ -97,7 +97,7 @@ void PAEventAction::BeginOfEventAction(const G4Event*)
   NGCNPE=0;
   CalEnergy=0;
 
-  // No primary-pion summary has been reported yet for this new event.
+  // No generated-primary summary has been reported yet for this new event.
   PrimaryPDG = 0;
   PrimaryReachedCal = false;
   PrimaryExitedCal = false;

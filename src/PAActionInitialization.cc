@@ -41,7 +41,7 @@ void PAActionInitialization::Build() const
   /*
    * PATrackingAction owns the temporary record for the one track currently
    * being transported. It also has a non-owning pointer to eventAction so it
-   * can report the primary-pion summary.
+   * can report the generated-primary summary.
    */
   auto trackingAction =
       new PATrackingAction(eventAction);

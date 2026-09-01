@@ -16,13 +16,13 @@
  *       +-- begin Track 1
  *       |      |
  *       |      +-- PreUserTrackingAction()
- *       |      |      Save the track's initial state.
+ *       |      |      Record IDs, PDG, creator process, and reach flags.
  *       |      |
  *       |      +-- many calls to PASteppingAction
  *       |      |      Set detector-crossing flags.
  *       |      |
  *       |      +-- PostUserTrackingAction()
- *       |             Save the final state and write one Tracks row.
+ *       |             Identify the terminal volume/process and write one row.
  *       |
  *       +-- begin Track 2
  *              ...
@@ -124,7 +124,7 @@ class PATrackingAction : public G4UserTrackingAction
 
     /*
      * fEventAction is non-owning. It is used only to pass the completed
-     * primary-pion summary to the event-level PA tree.
+     * generated-primary summary to the event-level PA tree.
      */
     PAEventAction* fEventAction;
 
@@ -133,8 +133,8 @@ class PATrackingAction : public G4UserTrackingAction
      *
      * Usually Geant4 transports one track continuously. Optical processes,
      * however, may suspend a charged parent, transport its photons, and then
-     * resume the parent. The map keeps the parent's original start state and
-     * accumulated detector flags across those suspension/resume cycles.
+     * resume the parent. The map keeps the parent's identifiers, creator
+     * process, and accumulated detector flags across those cycles.
      */
     std::unordered_map<G4int, TrackRecord> fTrackRecords;
 };
