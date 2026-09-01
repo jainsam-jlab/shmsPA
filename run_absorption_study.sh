@@ -122,9 +122,9 @@ test -s "${truth_output}"
 echo "Creating absorption summary and plots..."
 python3 "${project_dir}/scripts/diagnostics/postprocess_secondary_pion_truth.py" \
   "${truth_output}" --output-dir "${report_dir}" --particle-label "${particle}"
+rm -f "${truth_output}"
 
 echo "Study complete."
 echo "Geant4 ROOT:  ${geant_output}"
-echo "Truth ROOT:   ${truth_output}"
 echo "Summary CSV:  ${report_dir}/absorption_summary.csv"
 echo "Plots:        ${report_dir}"

@@ -72,12 +72,15 @@ Each run is written under:
 ```text
 absorption_results/PARTICLE_MOMENTUMGeV_EVENTS/
 ├── geant4.root
-├── absorption_truth.root
 ├── run.mac
 └── report/
     ├── absorption_summary.csv
     └── *.png
 ```
+
+The temporary truth-analysis ROOT file is removed automatically after the CSV
+and plots are created successfully. If postprocessing fails, it is retained to
+support debugging.
 
 The truth recovery fraction is
 
