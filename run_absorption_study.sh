@@ -49,21 +49,38 @@ geant_output="${output_dir}/geant4.root"
 truth_output="${output_dir}/absorption_truth.root"
 report_dir="${output_dir}/report"
 mkdir -p "${output_dir}" "${report_dir}"
-
-decay_command=""
-case "${particle}" in
-  pi+|pi-|kaon+|kaon-) decay_command="/process/inactivate Decay ${particle}" ;;
-esac
+rm -f \
+  "${report_dir}/summary.json" \
+  "${report_dir}/ABSORPTION_STUDY.md" \
+  "${report_dir}/SECONDARY_PION_VISIBILITY_STUDY.md" \
+  "${report_dir}/AGC_vs_HGC_no_target_in_PID.png" \
+  "${report_dir}/AGC_vs_HGC_no_pion_in_PID.png"
 
 cat > "${macro_file}" <<EOF
+## Macro for SHMS particle material-loss simulation
+
 /run/initialize
+
+## Use focal-plane kinematics
 /PA/generator/useGenerated true
-${decay_command}
+/PA/generator/setInFile run5055kine.txt
+
+## Pion and kaon decay are already included in SIMC
+/process/inactivate Decay pi+
+/process/inactivate Decay kaon+
 /run/physicsModified
+
+## Central SHMS momentum
 /PA/generator/momentum ${momentum} GeV
+
+## Primary particle
 /gun/particle ${particle}
+
+## ROOT output
 /analysis/setFileName ${geant_output}
-/run/printProgress 1000
+
+## Number of generated events
+/run/printProgress 100
 /run/beamOn ${events}
 EOF
 
@@ -109,6 +126,5 @@ python3 "${project_dir}/scripts/diagnostics/postprocess_secondary_pion_truth.py"
 echo "Study complete."
 echo "Geant4 ROOT:  ${geant_output}"
 echo "Truth ROOT:   ${truth_output}"
-echo "Summary JSON: ${report_dir}/summary.json"
-echo "Report:       ${report_dir}/ABSORPTION_STUDY.md"
+echo "Summary CSV:  ${report_dir}/absorption_summary.csv"
 echo "Plots:        ${report_dir}"

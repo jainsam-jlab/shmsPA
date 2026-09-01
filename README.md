@@ -2,8 +2,13 @@
 
 This repository runs particles through the SHMS Geant4 geometry and measures
 whether the generated primary, or a same-species direct daughter, reaches S2.
-The study also records the 3-of-4 SHMS trigger decision and event-level AGC/HGC
+The output also correlates these truth categories with event-level AGC/HGC
 responses.
+
+This work updates the original
+[acpostuma/shmsPA](https://github.com/acpostuma/shmsPA) Geant4 framework.
+ChatGPT and OpenAI Codex were used to assist with implementation,
+documentation, and code checks.
 
 ## Set up on the JLab farm
 
@@ -14,7 +19,16 @@ git clone https://github.com/jainsam-jlab/shmsPA.git
 cd shmsPA
 ```
 
-Load the JLab ROOT and Geant4 environments:
+The default JLab farm login shell is normally `tcsh`. Load ROOT and Geant4
+with:
+
+```csh
+source /cvmfs/oasis.opensciencegrid.org/jlab/scicomp/sw/el9/root/6.24.08-gcc11.4.0/bin/thisroot.csh
+source /cvmfs/oasis.opensciencegrid.org/jlab/geant4/almalinux9-gcc11/geant4/11.3.2/bin/geant4.csh
+setenv GEANT4_DATA_DIR /cvmfs/oasis.opensciencegrid.org/jlab/geant4/almalinux9-gcc11/geant4/11.3.2/data/Geant4-11.3.2/data
+```
+
+For a Bash shell, use:
 
 ```bash
 source /cvmfs/oasis.opensciencegrid.org/jlab/scicomp/sw/el9/root/6.24.08-gcc11.4.0/bin/thisroot.sh
@@ -61,8 +75,7 @@ absorption_results/PARTICLE_MOMENTUMGeV_EVENTS/
 ├── absorption_truth.root
 ├── run.mac
 └── report/
-    ├── summary.json
-    ├── ABSORPTION_STUDY.md
+    ├── absorption_summary.csv
     └── *.png
 ```
 
@@ -79,6 +92,5 @@ position/momentum branches are omitted to keep the Geant4 output small.
 
 AGC and HGC NPE values are event-level quantities. A truth track reaching a
 detector establishes a correlation with the event response; it does not assign
-individual photoelectrons to that track. `OldPionPIDPass` is retained only as
-a legacy pion-specific cross-check; the reach and direct-daughter truth study
-uses the selected PDG for every supported particle.
+individual photoelectrons to that track. The reach and direct-daughter truth
+study uses the selected PDG for every supported particle.
