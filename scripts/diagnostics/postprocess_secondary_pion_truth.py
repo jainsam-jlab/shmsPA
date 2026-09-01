@@ -50,7 +50,7 @@ def main():
 
     csv_rows = []
 
-    def add(section, metric, value, denominator):
+    def add(section, metric, value, denominator, definition):
         percent = 100.0 * value / denominator if denominator else 0.0
         csv_rows.append(
             {
@@ -60,31 +60,54 @@ def main():
                 "count": value,
                 "denominator": denominator,
                 "percent": f"{percent:.6f}",
+                "definition": definition,
             }
         )
 
-    add("all_generated_events", "generated", generated, generated)
-    add("all_generated_events", "primary_reached_s2", primary_reached, generated)
-    add("all_generated_events", "primary_missed_s2", len(missed), generated)
+    add("all_generated_events", "generated", generated, generated,
+        "Number of generated Geant4 events")
+    add("all_generated_events", "primary_reached_s2", primary_reached, generated,
+        "The generated primary track reached S2")
+    add("all_generated_events", "primary_did_not_reach_s2", len(missed), generated,
+        "The generated primary track did not reach S2; this alone does not establish absorption")
     add(
         "all_generated_events",
-        "primary_or_direct_daughter_reached_s2",
+        "primary_or_same_pdg_direct_daughter_reached_s2",
         recovered,
         generated,
+        "The primary or a direct daughter with the selected PDG reached S2",
     )
-    add("all_generated_events", "truth_not_recovered_at_s2", generated - recovered, generated)
-    add("primary_missed_s2", "direct_daughter_produced", count(missed, "HasDirectDaughter"), len(missed))
-    add("primary_missed_s2", "direct_daughter_reached_hgc", count(missed, "DirectDaughterReachedHGC"), len(missed))
-    add("primary_missed_s2", "direct_daughter_reached_agc", count(missed, "DirectDaughterReachedAGC"), len(missed))
-    add("primary_missed_s2", "direct_daughter_reached_s2", direct_recovered, len(missed))
-    add("primary_missed_s2", "direct_daughter_reached_cal", count(missed, "DirectDaughterReachedCal"), len(missed))
-    add("primary_missed_s2", "direct_daughter_exited_cal", count(missed, "DirectDaughterExitedCal"), len(missed))
+    add("all_generated_events",
+        "neither_primary_nor_same_pdg_direct_daughter_reached_s2",
+        generated - recovered, generated,
+        "Neither the primary nor a same-PDG direct daughter reached S2; another species may have reached S2 and this is not automatically material absorption")
+    add("primary_did_not_reach_s2", "same_pdg_direct_daughter_produced",
+        count(missed, "HasDirectDaughter"), len(missed),
+        "A direct daughter with the selected PDG was produced")
+    add("primary_did_not_reach_s2", "same_pdg_direct_daughter_reached_hgc",
+        count(missed, "DirectDaughterReachedHGC"), len(missed),
+        "A same-PDG direct daughter reached HGC")
+    add("primary_did_not_reach_s2", "same_pdg_direct_daughter_reached_agc",
+        count(missed, "DirectDaughterReachedAGC"), len(missed),
+        "A same-PDG direct daughter reached AGC")
+    add("primary_did_not_reach_s2", "same_pdg_direct_daughter_reached_s2",
+        direct_recovered, len(missed),
+        "A same-PDG direct daughter reached S2")
+    add("primary_did_not_reach_s2", "same_pdg_direct_daughter_reached_cal",
+        count(missed, "DirectDaughterReachedCal"), len(missed),
+        "A same-PDG direct daughter reached the calorimeter")
+    add("primary_did_not_reach_s2", "same_pdg_direct_daughter_exited_cal",
+        count(missed, "DirectDaughterExitedCal"), len(missed),
+        "A same-PDG direct daughter exited the calorimeter")
 
     csv_path = output_dir / "absorption_summary.csv"
     with csv_path.open("w", newline="") as stream:
         writer = csv.DictWriter(
             stream,
-            fieldnames=("particle", "section", "metric", "count", "denominator", "percent"),
+            fieldnames=(
+                "particle", "section", "metric", "count", "denominator",
+                "percent", "definition",
+            ),
         )
         writer.writeheader()
         writer.writerows(csv_rows)

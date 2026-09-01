@@ -82,12 +82,18 @@ The temporary truth-analysis ROOT file is removed automatically after the CSV
 and plots are created successfully. If postprocessing fails, it is retained to
 support debugging.
 
-The truth recovery fraction is
+The same-PDG S2 recovery fraction is
 
 ```text
 100 × (primary reached S2 + primary missed S2 but a direct daughter reached S2)
       / generated events.
 ```
+
+The complementary CSV category means that neither the primary nor a
+same-PDG direct daughter reached S2. It must not automatically be interpreted
+as material absorption: the primary may have left the acceptance, changed
+species, stopped through another process, or another particle species may have
+reached S2.
 
 The `Tracks` tree stores IDs, PDG code, genealogy, creator/end process,
 end volume, and detector-reaching flags. Optical photons and detailed
